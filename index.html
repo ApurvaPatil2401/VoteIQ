@@ -475,7 +475,7 @@
             <p style="color: var(--text-muted); margin-bottom: 1rem;">Enter your Gemini API key to power the intelligence of VoteIQ. Your key is stored securely in your browser's local storage.</p>
             <div class="input-group">
                 <label for="api-key-input">API Key</label>
-                <input type="password" id="api-key-input" placeholder="Enter Gemini API Key (min 20 chars)" aria-label="Gemini API Key">
+                <input type="password" id="api-key-input" placeholder="Enter Gemini API Key (min 20 chars)" aria-label="Gemini API Key" maxlength="100">
             </div>
             <button class="btn-primary" id="save-key-btn" aria-label="Save API Key">
                 <span aria-hidden="true">💾</span> Save Key
@@ -516,7 +516,7 @@
                         </div>
                     </div>
                     <div class="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Type your question..." aria-label="Chat Input">
+                        <input type="text" id="chat-input" placeholder="Type your question..." aria-label="Chat Input" maxlength="100">
                         <button class="btn-primary" id="send-chat-btn" aria-label="Send Message">
                             <span class="loader" id="chat-loader"></span>
                             <span id="chat-btn-text">Send</span>
@@ -532,7 +532,7 @@
                 <h2>Voter Eligibility Checker</h2>
                 <div class="input-group">
                     <label for="age-input">Your Age</label>
-                    <input type="number" id="age-input" placeholder="Enter age e.g., 18" min="1" max="120" aria-label="Age Input">
+                    <input type="number" id="age-input" placeholder="Enter age e.g., 18" min="1" max="120" aria-label="Age Input" oninput="if(this.value.length > 3) this.value = this.value.slice(0,3);">
                 </div>
                 <div class="input-group">
                     <label for="citizen-input">Are you an Indian Citizen?</label>
@@ -607,7 +607,9 @@
         // Basic Markdown to HTML converter for Gemini responses
         function parseMarkdown(text) {
             if(!text) return "";
-            let html = text
+            // Sanitize all AI outputs to prevent XSS
+            let safeText = sanitizeInput(text);
+            let html = safeText
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/\n\n/g, '</p><p>')
@@ -624,7 +626,8 @@
         const state = {
             apiKey: localStorage.getItem('voteiq_api_key') || '',
             apiReady: false,
-            geminiUrl: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+            geminiUrl: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            lastApiCallTime: 0
         };
 
         // --- Core Functions ---
@@ -651,7 +654,7 @@
         // Save API Key
         document.getElementById('save-key-btn').addEventListener('click', () => {
             const input = document.getElementById('api-key-input');
-            const val = sanitizeInput(input.value.trim());
+            const val = sanitizeInput(input.value.trim().substring(0, 100));
             
             // Don't save if it's the masked value
             if (val === '••••••••••••••••••••••••') return;
@@ -672,6 +675,12 @@
             if (!state.apiReady) {
                 throw new Error("API Key not configured. Please enter your Gemini API Key.");
             }
+
+            const now = Date.now();
+            if (now - state.lastApiCallTime < 3000) {
+                throw new Error("Rate limit exceeded. Please wait 3 seconds before trying again.");
+            }
+            state.lastApiCallTime = now;
 
             try {
                 // Log to Firestore if configured
@@ -778,7 +787,7 @@
         }
 
         async function handleChatSubmit() {
-            const question = sanitizeInput(chatInput.value.trim());
+            const question = sanitizeInput(chatInput.value.trim().substring(0, 100));
             if (!question) return;
 
             appendMessage(question, 'user');
@@ -814,8 +823,8 @@
         const eligResult = document.getElementById('eligibility-result');
 
         checkEligBtn.addEventListener('click', debounce(async () => {
-            const age = document.getElementById('age-input').value;
-            const citizen = document.getElementById('citizen-input').value;
+            const age = document.getElementById('age-input').value.trim().substring(0, 3);
+            const citizen = document.getElementById('citizen-input').value.trim().substring(0, 10);
 
             if (!age) {
                 alert("Please enter your age.");
