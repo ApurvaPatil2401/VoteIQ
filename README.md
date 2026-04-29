@@ -4,7 +4,11 @@
 
 > An AI-powered interactive education tool for Indian voters built with Gemini AI.
 
-**[Live Demo](https://voteiq-india.web.app)**
+## 🔑 How to Try the Live Demo
+1. Visit [https://voteiq-india.web.app](https://voteiq-india.web.app)
+2. Get your free Gemini API key from [aistudio.google.com](https://aistudio.google.com)
+3. Enter the key in the "Gemini AI Setup" section
+4. Start exploring Indian elections! 
 
 ## 🌟 Features
 - **Interactive 7-step Election Timeline**: Understand the electoral process step-by-step.
