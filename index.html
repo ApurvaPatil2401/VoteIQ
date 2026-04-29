@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoteIQ - India Election Assistant</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FF9933">
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://generativelanguage.googleapis.com https://firebase.googleapis.com https://firestore.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://generativelanguage.googleapis.com https://firestore.googleapis.com https://firebase.googleapis.com https://www.google-analytics.com;">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase CDN -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+      // IMPORTANT: Replace with your actual Firebase config if deploying.
+      // Leaving mock config for this challenge context to avoid errors if not provided.
+      const firebaseConfig = {
+        apiKey: "MOCK_API_KEY",
+        authDomain: "mock-voteiq.firebaseapp.com",
+        projectId: "mock-voteiq",
+        storageBucket: "mock-voteiq.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:mock123"
+      };
+
+      try {
+          const app = initializeApp(firebaseConfig);
+          window.db = getFirestore(app);
+          window.firebaseLogQuery = async function(queryType, content) {
+            try {
+              if (window.db) {
+                await addDoc(collection(window.db, "ai_queries"), {
+                  type: queryType,
+                  content: content,
+                  timestamp: serverTimestamp()
+                });
+              }
+            } catch (e) {
+              console.error("Error logging to Firestore", e);
+            }
+          }
+      } catch (e) {
+          console.error("Firebase initialization failed", e);
+      }
+    </script>
+
+    <!-- Google Analytics (Mock ID for Challenge) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MOCKVOTEIQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MOCKVOTEIQ');
+    </script>
+
+    <style>
+        /* CSS Variables: Dark Theme with Tiranga Palette */
+        :root {
+            --bg-color: #0f1115;
+            --surface-color: #1a1d24;
+            --surface-hover: #2a2e37;
+            --text-main: #f8f9fa;
+            --text-muted: #adb5bd;
+            
+            /* Tiranga Palette */
+            --saffron: #FF9933;
+            --saffron-dim: rgba(255, 153, 51, 0.2);
+            --white: #FFFFFF;
+            --green: #138808;
+            --green-dim: rgba(19, 136, 8, 0.2);
+            
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: rgba(26, 29, 36, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .logo-text {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, var(--saffron), var(--white), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+            display: grid;
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--saffron);
+            border-radius: 4px;
+        }
+
+        /* Forms & Inputs */
+        .input-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--saffron);
+            box-shadow: 0 0 0 3px var(--saffron-dim);
+        }
+
+        button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--saffron);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #ffaa55;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: #fff;
+        }
+
+        /* API Status */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.ready {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            cursor: pointer;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--surface-color);
+            border: 2px solid var(--text-muted);
+            z-index: 1;
+            transition: var(--transition);
+        }
+
+        .timeline-item:hover::before, .timeline-item.active::before {
+            border-color: var(--saffron);
+            background: var(--saffron);
+            box-shadow: 0 0 10px var(--saffron-dim);
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .timeline-content {
+            margin-top: 0.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 3px solid var(--saffron);
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .timeline-item.active .timeline-content {
+            display: block;
+        }
+
+        /* Chatbot */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--saffron-dim);
+            border: 1px solid var(--saffron);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: var(--surface-hover);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chip:hover {
+            background: var(--saffron-dim);
+            border-color: var(--saffron);
+            color: var(--saffron);
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Quiz */
+        .quiz-option {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: var(--surface-hover);
+        }
+
+        .quiz-option.selected {
+            background: var(--saffron-dim);
+            border-color: var(--saffron);
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--saffron);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: auto;
+        }
+
+        /* Layout Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            main { padding: 1rem; }
+        }
+
+        /* Markdown Styles for AI output */
+        .ai-content p { margin-bottom: 0.5rem; }
+        .ai-content strong { color: var(--saffron); }
+        .ai-content ul { padding-left: 1.5rem; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+
+    <header role="navigation">
+        <div class="logo-container">
+            <span class="logo-icon" aria-hidden="true">🗳️</span>
+            <span class="logo-text">VoteIQ</span>
+        </div>
+        <div class="status-badge" id="api-status-badge">
+            <div class="status-dot" id="api-status-dot"></div>
+            <span id="api-status-text">API Not Configured</span>
+        </div>
+    </header>
+
+    <main role="main">
+        <!-- 1. API Setup Section -->
+        <section class="card" aria-label="API Setup">
+            <h2>Gemini AI Setup</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Enter your Gemini API key to power the intelligence of VoteIQ. Your key is stored securely in your browser's local storage.</p>
+            <div class="input-group">
+                <label for="api-key-input">API Key</label>
+                <input type="password" id="api-key-input" placeholder="Enter Gemini API Key (min 20 chars)" aria-label="Gemini API Key">
+            </div>
+            <button class="btn-primary" id="save-key-btn" aria-label="Save API Key">
+                <span aria-hidden="true">💾</span> Save Key
+            </button>
+        </section>
+
+        <div class="grid-2">
+            <!-- 2. Interactive Timeline -->
+            <section class="card" aria-label="Election Timeline">
+                <h2>Election Process Timeline</h2>
+                <div class="timeline" id="election-timeline">
+                    <!-- Timeline items generated by JS -->
+                </div>
+            </section>
+
+            <!-- 3. AI Chatbot -->
+            <section class="card" aria-label="Election Assistant Chat">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="margin:0;">Ask the AI Assistant</h2>
+                    <select id="lang-toggle" aria-label="Language Toggle" style="width: auto; padding: 0.5rem;">
+                        <option value="English">English</option>
+                        <option value="Hindi">हिंदी</option>
+                    </select>
+                </div>
+                
+                <div class="chat-chips">
+                    <button class="chip" onclick="askPredefined('What is an EVM?')">What is EVM?</button>
+                    <button class="chip" onclick="askPredefined('How do I register to vote?')">How to register?</button>
+                    <button class="chip" onclick="askPredefined('What is NOTA?')">What is NOTA?</button>
+                    <button class="chip" onclick="askPredefined('What is the Model Code of Conduct (MCC)?')">What is MCC?</button>
+                    <button class="chip" onclick="askPredefined('Difference between Lok Sabha and Rajya Sabha?')">Lok Sabha vs Rajya Sabha?</button>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages" aria-live="polite">
+                        <div class="message ai">
+                            <div class="ai-content">Namaste! I am your VoteIQ Assistant. How can I help you understand Indian elections today?</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Type your question..." aria-label="Chat Input">
+                        <button class="btn-primary" id="send-chat-btn" aria-label="Send Message">
+                            <span class="loader" id="chat-loader"></span>
+                            <span id="chat-btn-text">Send</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="grid-2">
+            <!-- 4. Eligibility Checker -->
+            <section class="card" aria-label="Eligibility Checker">
+                <h2>Voter Eligibility Checker</h2>
+                <div class="input-group">
+                    <label for="age-input">Your Age</label>
+                    <input type="number" id="age-input" placeholder="Enter age e.g., 18" min="1" max="120" aria-label="Age Input">
+                </div>
+                <div class="input-group">
+                    <label for="citizen-input">Are you an Indian Citizen?</label>
+                    <select id="citizen-input" aria-label="Citizenship Status">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="check-eligibility-btn" aria-label="Check Eligibility">
+                    Check Eligibility <span class="loader" id="eligibility-loader"></span>
+                </button>
+                <div id="eligibility-result" class="timeline-content" style="margin-top: 1rem; border-left-color: var(--green);" aria-live="polite">
+                    <!-- Results here -->
+                </div>
+            </section>
+
+            <!-- 5. Election Quiz -->
+            <section class="card" aria-label="Election Knowledge Quiz">
+                <h2>Election Knowledge Quiz</h2>
+                <div id="quiz-container">
+                    <div id="quiz-question-area">
+                        <h3 id="quiz-question" style="margin-bottom: 1rem; font-weight: 500;">Press Start to test your knowledge!</h3>
+                        <div id="quiz-options"></div>
+                    </div>
+                    <div id="quiz-result-area" style="display: none; margin-top: 1rem;">
+                        <h3 id="quiz-score" style="color: var(--saffron); margin-bottom: 1rem;"></h3>
+                        <div id="quiz-feedback" class="timeline-content" style="display: block; border-left-color: var(--saffron);"></div>
+                    </div>
+                    <button class="btn-primary" id="quiz-action-btn" style="margin-top: 1.5rem; width: 100%;">Start Quiz</button>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <footer role="contentinfo">
+        <p>Built with Google Antigravity & Gemini AI | PromptWars Virtual Challenge</p>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Security & Utilities ---
+        
+        // Debounce for API calls to prevent spamming
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Sanitize input to prevent basic XSS (in addition to CSP)
+        function sanitizeInput(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>"']/g, function(m) {
+                switch (m) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    case "'": return '&#039;';
+                    default: return m;
+                }
+            });
+        }
+
+        // Basic Markdown to HTML converter for Gemini responses
+        function parseMarkdown(text) {
+            if(!text) return "";
+            let html = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n- (.*?)(?=\n|$)/g, '<li>$1</li>');
+            
+            // Wrap lists
+            if(html.includes('<li>')) {
+                html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            }
+            return `<p>${html}</p>`;
+        }
+
+        // --- State Management ---
+        const state = {
+            apiKey: localStorage.getItem('voteiq_api_key') || '',
+            apiReady: false,
+            geminiUrl: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        };
+
+        // --- Core Functions ---
+
+        // Check API Key
+        function checkApiStatus() {
+            const badge = document.getElementById('api-status-badge');
+            const dot = document.getElementById('api-status-dot');
+            const text = document.getElementById('api-status-text');
+            const input = document.getElementById('api-key-input');
+
+            if (state.apiKey && state.apiKey.length >= 20) {
+                state.apiReady = true;
+                dot.classList.add('ready');
+                text.textContent = 'API Ready';
+                input.value = '••••••••••••••••••••••••';
+            } else {
+                state.apiReady = false;
+                dot.classList.remove('ready');
+                text.textContent = 'API Not Configured';
+            }
+        }
+
+        // Save API Key
+        document.getElementById('save-key-btn').addEventListener('click', () => {
+            const input = document.getElementById('api-key-input');
+            const val = sanitizeInput(input.value.trim());
+            
+            // Don't save if it's the masked value
+            if (val === '••••••••••••••••••••••••') return;
+
+            if (val.length < 20) {
+                alert("Please enter a valid Gemini API key (minimum 20 characters).");
+                return;
+            }
+
+            state.apiKey = val;
+            localStorage.setItem('voteiq_api_key', val);
+            checkApiStatus();
+            alert("API Key saved securely to local storage.");
+        });
+
+        // --- Gemini API Wrapper ---
+        async function callGemini(prompt, systemInstruction = "You are a helpful, neutral election assistant for Indian citizens. Explain concepts simply.") {
+            if (!state.apiReady) {
+                throw new Error("API Key not configured. Please enter your Gemini API Key.");
+            }
+
+            try {
+                // Log to Firestore if configured
+                if (window.firebaseLogQuery) {
+                    window.firebaseLogQuery("gemini_prompt", prompt.substring(0, 100)); // Log partial prompt
+                }
+
+                const response = await fetch(`${state.geminiUrl}?key=${state.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }]}
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || "API request failed");
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                throw error;
+            }
+        }
+
+        // --- Feature 2: Interactive Timeline ---
+        const timelineSteps = [
+            { id: 1, title: "Step 1: Election Announcement", prompt: "Explain Step 1 of Indian Elections: Announcement and Model Code of Conduct (MCC) in 2 short paragraphs." },
+            { id: 2, title: "Step 2: Voter Registration", prompt: "Explain Step 2 of Indian Elections: Voter Registration and EPIC card in 2 short paragraphs." },
+            { id: 3, title: "Step 3: Nomination Filing", prompt: "Explain Step 3 of Indian Elections: Nomination Filing by candidates in 2 short paragraphs." },
+            { id: 4, title: "Step 4: Campaign Period", prompt: "Explain Step 4 of Indian Elections: The Campaign Period rules in 2 short paragraphs." },
+            { id: 5, title: "Step 5: Voting Day", prompt: "Explain Step 5 of Indian Elections: Voting Day, EVM, and VVPAT in 2 short paragraphs." },
+            { id: 6, title: "Step 6: Vote Counting", prompt: "Explain Step 6 of Indian Elections: The Vote Counting process in 2 short paragraphs." },
+            { id: 7, title: "Step 7: Result Declaration", prompt: "Explain Step 7 of Indian Elections: Result Declaration and Government formation in 2 short paragraphs." }
+        ];
+
+        function renderTimeline() {
+            const container = document.getElementById('election-timeline');
+            timelineSteps.forEach(step => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.innerHTML = `
+                    <div class="timeline-title">${step.title}</div>
+                    <div class="timeline-content ai-content" id="timeline-content-${step.id}">
+                        <div class="loader" style="display:block; margin:auto;"></div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', async function() {
+                    // Toggle active state
+                    const isActive = this.classList.contains('active');
+                    
+                    // Close all
+                    document.querySelectorAll('.timeline-item').forEach(el => el.classList.remove('active'));
+                    
+                    if (!isActive) {
+                        this.classList.add('active');
+                        const contentDiv = document.getElementById(`timeline-content-${step.id}`);
+                        
+                        // Fetch only if not already loaded
+                        if (contentDiv.innerHTML.includes('loader')) {
+                            try {
+                                const response = await callGemini(step.prompt);
+                                contentDiv.innerHTML = parseMarkdown(response);
+                            } catch (e) {
+                                contentDiv.innerHTML = `<p style="color: #dc3545;">Error: ${e.message}</p>`;
+                            }
+                        }
+                    }
+                });
+                container.appendChild(item);
+            });
+        }
+
+        // --- Feature 3: Chatbot ---
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-chat-btn');
+        const chatLoader = document.getElementById('chat-loader');
+        const chatBtnText = document.getElementById('chat-btn-text');
+        const langToggle = document.getElementById('lang-toggle');
+
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-content';
+            contentDiv.innerHTML = sender === 'ai' ? parseMarkdown(text) : sanitizeInput(text);
+            
+            msgDiv.appendChild(contentDiv);
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Expose to window for chip buttons
+        window.askPredefined = function(question) {
+            chatInput.value = question;
+            handleChatSubmit();
+        }
+
+        async function handleChatSubmit() {
+            const question = sanitizeInput(chatInput.value.trim());
+            if (!question) return;
+
+            appendMessage(question, 'user');
+            chatInput.value = '';
+            
+            chatLoader.style.display = 'block';
+            chatBtnText.style.display = 'none';
+            sendBtn.disabled = true;
+
+            const language = langToggle.value;
+            const prompt = `User asks: "${question}". Respond in ${language}. Keep it concise, simple, and accurate regarding Indian elections.`;
+
+            try {
+                const answer = await callGemini(prompt);
+                appendMessage(answer, 'ai');
+            } catch (error) {
+                appendMessage(`Error: ${error.message}. Please check your API key.`, 'ai');
+            } finally {
+                chatLoader.style.display = 'none';
+                chatBtnText.style.display = 'block';
+                sendBtn.disabled = false;
+            }
+        }
+
+        sendBtn.addEventListener('click', debounce(handleChatSubmit, 500));
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleChatSubmit();
+        });
+
+        // --- Feature 4: Eligibility Checker ---
+        const checkEligBtn = document.getElementById('check-eligibility-btn');
+        const eligLoader = document.getElementById('eligibility-loader');
+        const eligResult = document.getElementById('eligibility-result');
+
+        checkEligBtn.addEventListener('click', debounce(async () => {
+            const age = document.getElementById('age-input').value;
+            const citizen = document.getElementById('citizen-input').value;
+
+            if (!age) {
+                alert("Please enter your age.");
+                return;
+            }
+
+            eligLoader.style.display = 'inline-block';
+            checkEligBtn.disabled = true;
+            eligResult.style.display = 'none';
+
+            const prompt = `A user is checking their voter eligibility in India. They are ${age} years old and citizenship status is: ${citizen}. 
+            Determine if they are eligible to vote. If yes, list the 3 main documents they need (like Aadhaar, EPIC). If no, explain briefly why. Format as a short, friendly response.`;
+
+            try {
+                const result = await callGemini(prompt);
+                eligResult.innerHTML = parseMarkdown(result);
+                eligResult.style.display = 'block';
+            } catch (error) {
+                eligResult.innerHTML = `<p style="color: #dc3545;">Error: ${error.message}</p>`;
+                eligResult.style.display = 'block';
+            } finally {
+                eligLoader.style.display = 'none';
+                checkEligBtn.disabled = false;
+            }
+        }, 500));
+
+        // --- Feature 5: Quiz ---
+        const quizData = [
+            { q: "What is the full form of EVM?", options: ["Electronic Voting Machine", "Election Validation Method", "Electronic Voter Matrix", "Election Verification Machine"], ans: 0 },
+            { q: "What does NOTA stand for?", options: ["None of the Above", "No Other True Alternative", "Not On The Agenda", "New Optional Trending Answer"], ans: 0 },
+            { q: "What is the minimum voting age in India?", options: ["16", "18", "21", "25"], ans: 1 },
+            { q: "Who administers elections in India?", options: ["Supreme Court", "Parliament", "Election Commission of India", "President"], ans: 2 },
+            { q: "What is the color of the ink applied to a voter's finger?", options: ["Red", "Black/Indelible Purple", "Blue", "Green"], ans: 1 }
+        ];
+
+        let currentQIndex = 0;
+        let score = 0;
+        
+        const quizActionBtn = document.getElementById('quiz-action-btn');
+        const questionText = document.getElementById('quiz-question');
+        const optionsArea = document.getElementById('quiz-options');
+        const resultArea = document.getElementById('quiz-result-area');
+        const scoreText = document.getElementById('quiz-score');
+        const feedbackText = document.getElementById('quiz-feedback');
+
+        function loadQuestion() {
+            const q = quizData[currentQIndex];
+            questionText.textContent = `${currentQIndex + 1}. ${q.q}`;
+            optionsArea.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.textContent = opt;
+                btn.onclick = () => selectOption(btn, index);
+                optionsArea.appendChild(btn);
+            });
+            
+            quizActionBtn.textContent = 'Next Question';
+            quizActionBtn.style.display = 'none'; // Hide until option selected
+        }
+
+        function selectOption(btn, index) {
+            // Deselect others
+            document.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            btn.dataset.selectedIndex = index;
+            quizActionBtn.style.display = 'block';
+        }
+
+        quizActionBtn.addEventListener('click', async () => {
+            if (quizActionBtn.textContent === 'Start Quiz' || quizActionBtn.textContent === 'Restart Quiz') {
+                currentQIndex = 0;
+                score = 0;
+                resultArea.style.display = 'none';
+                document.getElementById('quiz-question-area').style.display = 'block';
+                loadQuestion();
+                return;
+            }
+
+            // Processing answer
+            const selectedBtn = document.querySelector('.quiz-option.selected');
+            if (selectedBtn) {
+                if (parseInt(selectedBtn.dataset.selectedIndex) === quizData[currentQIndex].ans) {
+                    score++;
+                }
+            }
+
+            currentQIndex++;
+
+            if (currentQIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                // Finish Quiz
+                document.getElementById('quiz-question-area').style.display = 'none';
+                resultArea.style.display = 'block';
+                scoreText.textContent = `You scored ${score} out of ${quizData.length}!`;
+                quizActionBtn.textContent = 'Restart Quiz';
+                quizActionBtn.disabled = true; // Disable while fetching feedback
+                
+                feedbackText.innerHTML = '<div class="loader" style="display:block; margin:auto;"></div>';
+                
+                try {
+                    const prompt = `A user just scored ${score} out of ${quizData.length} on an Indian Election Knowledge Quiz. Give them 2 sentences of encouraging, personalized feedback based on this score.`;
+                    const feedback = await callGemini(prompt);
+                    feedbackText.innerHTML = parseMarkdown(feedback);
+                } catch (e) {
+                    feedbackText.innerHTML = `<p>Great effort! Keep learning about the democratic process.</p>`;
+                } finally {
+                    quizActionBtn.disabled = false;
+                }
+            }
+        });
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            checkApiStatus();
+            renderTimeline();
+        });
+
+    </script>
+</body>
+</html>
